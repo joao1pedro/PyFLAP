@@ -155,47 +155,57 @@ def nfa_validate(nfa, arquivoTeste):
     errors = []
     count_error = 0
     count_hit = 0
-    count_line_file = 0
+    count_file_line = 0
     with open (arquivoTeste, 'r') as f:
         for elem in csv.reader(f, delimiter='\t'):
-            count_line_file +=1
+            count_file_line +=1
             if str(NFA.nfa_word_acceptance(nfa, elem[0])) != elem[1]:
                 errors.append(elem)
                 count_error +=1
-                count_line_file +=1
-            count_hit +=1       
-        if(count_error == 0):
-            print(f'Successful test {count_line_file} of {count_hit} passed')
-        else:
-            show_failed_tests(errors, count_error)
+                count_file_line +=1
+            count_hit +=1
+        return count_file_line, count_hit, errors, count_error
 
 def dfa_validate(dfa, arquivoTeste):
     errors = []
     count_error = 0
     count_hit = 0
-    count_line_file = 0
+    count_file_line = 0
     with open (arquivoTeste, 'r') as f:
         for elem in csv.reader(f, delimiter='\t'):
-            count_line_file +=1
+            count_file_line +=1
             if str(DFA.dfa_word_acceptance(dfa, elem[0])) != elem[1]:
                 errors.append(elem)
                 count_error +=1
-                count_line_file +=1
+                count_file_line +=1
             count_hit +=1
-        if(count_error == 0):
-            print(f'Successful test {count_line_file} of {count_hit} passed')
-        else:
-            show_failed_tests(errors, count_error)
-        
+        return count_file_line, count_hit, errors, count_error
 
-def show_failed_tests(errors, count_error):
-    print('Tests failed: ', count_error)
-    
-    for elem in errors:
-        if elem[1] == 'True':
-            print('for input ' + elem[0]+ ' receive True but expected False')
-        else:
-            print('for input ' + elem[0]+ ' receive False but expected True')
+def uncouple(count_file_line,count_hit,errors, count_error):
+    show_success(count_file_line, count_hit)
+    show_failed_tests(errors, count_error)
+
+def show_success(count_file_line, count_hit):
+    if(count_file_line == count_hit):
+        string = (f'Successful test {count_file_line} of {count_hit} passed')
+        print(string)
+        return string
+
+def show_failed_tests(array, count):
+    list_error = []
+    if count >= 1:
+        print('Tests failed: ', count)
+            
+        for elem in array:
+            if elem[1] == 'True':
+                output = ('for input ' + elem[0]+ ' receive True but expected False')
+                print(output)
+                list_error.append(output) 
+            else:
+                output = ('for input ' + elem[0]+ ' receive False but expected True')
+                print(output)
+                list_error.append(output) 
+        return list_error
         
 
 

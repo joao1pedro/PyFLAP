@@ -19,7 +19,8 @@ arquivo_teste_dfa = 'dfa.cases'
 print("NFA example: ")
 nfa = pm_lib.jffToNFA(arquivo)
 print("\n")
-pm_lib.nfa_validate(nfa, arquivoTeste)
+nfa_tests_lines, hits_, errors_, count_error_ = pm_lib.nfa_validate(nfa, arquivoTeste)
+pm_lib.uncouple(nfa_tests_lines, hits_, errors_, count_error_)
 automata_IO.nfa_to_dot(nfa, 'teste_nfa', './')
 
 #nfa = pm_lib.toNFA(lLog)
@@ -30,7 +31,8 @@ print("\n")
 print("DFA example: ")
 dfa = pm_lib.jffToDFA(arquivo_dfa)
 print("\n")
-pm_lib.dfa_validate(dfa, arquivo_teste_dfa)
+dfa_tests_lines, hits, errors, count_error = pm_lib.dfa_validate(dfa, arquivo_teste_dfa)
+pm_lib.uncouple(dfa_tests_lines, hits, errors, count_error)
 automata_IO.dfa_to_dot(dfa, 'teste_dfa', './')
 
 
