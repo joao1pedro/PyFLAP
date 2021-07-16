@@ -164,7 +164,10 @@ def nfa_validate(nfa, arquivoTeste):
                 count_error +=1
                 count_file_line +=1
             count_hit +=1
-        return count_file_line, count_hit, errors, count_error
+        if count_error >= 1:
+            return errors
+        else:
+            return count_hit
 
 def dfa_validate(dfa, arquivoTeste):
     errors = []
@@ -179,20 +182,26 @@ def dfa_validate(dfa, arquivoTeste):
                 count_error +=1
                 count_file_line +=1
             count_hit +=1
-        return count_file_line, count_hit, errors, count_error
+        if count_error >= 1:
+            return errors
+        else:
+            return count_hit
 
-def uncouple(count_file_line,count_hit,errors, count_error):
-    show_success(count_file_line, count_hit)
-    show_failed_tests(errors, count_error)
+def uncouple(param):
+    if type(param) == type(list()):
+        show_failed_tests(param)
+    else:
+        show_success(param)
 
-def show_success(count_file_line, count_hit):
-    if(count_file_line == count_hit):
-        string = (f'Successful test {count_file_line} of {count_hit} passed')
-        print(string)
-        return string
 
-def show_failed_tests(array, count):
+def show_success(count_hit):
+    string = (f'Successful test {count_hit} of {count_hit} passed')
+    print(string)
+    return string
+
+def show_failed_tests(array):
     list_error = []
+    count = len(array)
     if count >= 1:
         print('Tests failed: ', count)
             
