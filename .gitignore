@@ -1,3 +1,10 @@
 *.png
 *.svg
-*/myenv
+*.dot
+*.jff
+*myenv/
+.env
+.vscode/
+pm_lib_update.py
+test_dfa
+test_nfa

@@ -1,14 +1,16 @@
-from pyexpat import ErrorString
-from PySimpleAutomata import NFA, DFA, automata_IO
-from pm4py.objects.log.importer.xes import importer as xes_importer
-
-from xml.dom import minidom
-
-
-#import re
-#import os
+import re
+import os
 import csv
 import xmltodict
+
+
+from PySimpleAutomata import NFA, DFA, automata_IO
+from pm4py.objects.log.importer.xes import importer as xes_importer
+from pm4py.objects.log.util import dataframe_utils
+from pm4py.objects.conversion.log import converter as log_converter
+from pm4py.objects.conversion.wf_net import converter as wf_net_converter
+from xml.dom import minidom
+from graphviz import Digraph
 
 
 def convertToJffFile(file_name, file_xes):
@@ -211,7 +213,72 @@ def show_failed_tests(array):
                 list_error.append(output) 
         return list_error
         
+def save_dfa_to_graph(dfa: dict, name: str, path: str = './'):
+    dfa_to_graph(dfa).render(filename=name, directory=path)
 
+
+def dfa_to_graph(dfa: dict,formatfile='svg'):
+    """ Returns a Digraph of the input DFA using graphviz library.
+
+    :param dict dfa: DFA to export;
+    """
+    g = Digraph(format=formatfile)
+    g.attr(rankdir='LR')
+    g.node('fake', style='invisible')
+    for state in dfa['states']:
+        if state == dfa['initial_state']:
+            if state in dfa['accepting_states']:
+                g.node(str(state), root='true',
+                       shape='doublecircle')
+            else:
+                g.node(str(state), root='true')
+        elif state in dfa['accepting_states']:
+            g.node(str(state), shape='doublecircle')
+        else:
+            g.node(str(state))
+
+    g.edge('fake', str(dfa['initial_state']), style='bold')
+    for transition in dfa['transitions']:
+        g.edge(str(transition[0]),
+               str(dfa['transitions'][transition]),
+               label=transition[1])
+
+    return g
+
+def save_nfa_to_graph(nfa: dict, name: str, path: str = './'):
+    nfa_to_graph(nfa).render(filename=name, directory=path)
+
+def nfa_to_graph(nfa: dict,formatfile='svg'):
+    """ Returns a Digraph of the input NFA using graphviz library.
+
+    :param dict nfa: input NFA;
+    """
+    g = Digraph(format=formatfile)
+    g.attr(rankdir='LR')
+    fakes = []
+    for i in range(len(nfa['initial_states'])):
+        fakes.append('fake' + str(i))
+        g.node('fake' + str(i), style='invisible')
+
+    for state in nfa['states']:
+        if state in nfa['initial_states']:
+            if state in nfa['accepting_states']:
+                g.node(str(state), root='true',
+                       shape='doublecircle')
+            else:
+                g.node(str(state), root='true')
+        elif state in nfa['accepting_states']:
+            g.node(str(state), shape='doublecircle')
+        else:
+            g.node(str(state))
+
+    for initial_state in nfa['initial_states']:
+        g.edge(fakes.pop(), str(initial_state), style='bold')
+    for transition in nfa['transitions']:
+        for destination in nfa['transitions'][transition]:
+            g.edge(str(transition[0]), str(destination),
+                   label=transition[1])
+    return g
 
 
 # def smcComputation(nfa, event_log, event):
