@@ -2,9 +2,11 @@
 *.svg
 *.dot
 *.jff
+*.csv
 *myenv/
 .env
 .vscode/
 pm_lib_update.py
 test_dfa
 test_nfa
+Interface_grafica.ipynb

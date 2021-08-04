@@ -150,69 +150,30 @@ def jffToDFA(arquivo):
 
 def nfa_validate(nfa, arquivoTeste):
     errors = []
-    count_error = 0
-    count_hit = 0
-    count_file_line = 0
+    hit = []
+    results = []
     with open (arquivoTeste, 'r') as f:
         for elem in csv.reader(f, delimiter='\t'):
-            count_file_line +=1
             if str(NFA.nfa_word_acceptance(nfa, elem[0])) != elem[1]:
-                errors.append(elem)
-                count_error +=1
-                count_file_line +=1
-            count_hit +=1
-        if count_error >= 1:
-            return errors
-        else:
-            return count_hit
+                errors.append(elem[1])
+                results.append(elem[1])
+            hit.append(elem[1])
+            results.append(elem[1])
+        return results
 
 def dfa_validate(dfa, arquivoTeste):
     errors = []
-    count_error = 0
-    count_hit = 0
-    count_file_line = 0
+    hit = []
+    results = []
     with open (arquivoTeste, 'r') as f:
         for elem in csv.reader(f, delimiter='\t'):
-            count_file_line +=1
             if str(DFA.dfa_word_acceptance(dfa, elem[0])) != elem[1]:
-                errors.append(elem)
-                count_error +=1
-                count_file_line +=1
-            count_hit +=1
-        if count_error >= 1:
-            return errors
-        else:
-            return count_hit
+                errors.append(elem[1])
+                results.append(elem[1])
+            hit.append(elem[1])
+            results.append(elem[1])
+        return results
 
-def uncouple(param):
-    if type(param) == type(list()):
-        show_failed_tests(param)
-    else:
-        show_success(param)
-
-
-def show_success(count_hit):
-    string = (f'Successful test {count_hit} of {count_hit} passed')
-    print(string)
-    return string
-
-def show_failed_tests(array):
-    list_error = []
-    count = len(array)
-    if count >= 1:
-        print('Tests failed: ', count)
-        #list_error.append('Tests failed: ' + str(count))
-        for elem in array:
-            if elem[1] == 'True':
-                output = ('for input ' + elem[0]+ ' receive True but expected False')
-                print(output)
-                list_error.append(output) 
-            else:
-                output = ('for input ' + elem[0]+ ' receive False but expected True')
-                print(output)
-                list_error.append(output) 
-        return list_error
-        
 def save_dfa_to_graph(dfa: dict, name: str, path: str = './'):
     dfa_to_graph(dfa).render(filename=name, directory=path)
 
