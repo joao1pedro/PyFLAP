@@ -174,6 +174,16 @@ def dfa_validate(dfa, arquivoTeste):
             results.append(elem[1])
         return results
 
+def nondet_check(nfa):
+
+    for i in nfa['transitions']:
+    
+        l = nfa['transitions'].setdefault(i)
+
+        if type(l) == type(set()):
+            return True
+    return False
+
 def save_dfa_to_graph(dfa: dict, name: str, path: str = './'):
     dfa_to_graph(dfa).render(filename=name, directory=path)
 
