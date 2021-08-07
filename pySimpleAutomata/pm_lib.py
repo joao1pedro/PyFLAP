@@ -241,59 +241,6 @@ def nfa_to_graph(nfa: dict,formatfile='svg'):
                    label=transition[1])
     return g
 
-
-# def smcComputation(nfa, event_log, event):
-#     r = {}
-#     events = {}
-#     events.append(event)
-#     pendingRegs = {}
-#     part = {}
-#     for i in event_log:
-#         if i != event:
-#             ri = pickOneRegion(i)
-#         elif i == event and i not in ri:
-#             rj = pickOneRegion(i)
-#     pendingRegs.append(ri)
-#     pendingRegs.append(rj)
-#     part.append(ri)
-#     part.append(rj)
-
-#     while len(pendingRegs) > 0 or part < len(nfa['states']):
-#         r = removeOneRegion(pendingRegs)
-#         for e in E:
-#             if e not in events:
-#                 for i in event_log:
-#                     if i not in part:
-#                         if i != event:
-#                             ri = pickOneRegion(i)
-#                         elif i == event and i not in ri:
-#                             rj = pickOneRegion(i)
-#                 if len(ri) == 0 or len(rj) == 0:
-#                     events.append(e)
-#                     r.append(ri)
-#                     r.append(rj)
-#                     pendingRegs.append(ri)
-#                     pendingRegs.append(rj)
-#                     part.append(ri)
-#                     part.append(rj)
-#     if part in nfa['states']: r.append(r.append(nfa['states']))
-#     return r
-
-
-# def smcDecomposition(nfa):
-#     x = nfa['alphabet']
-#     i = 1
-#     while len(x) > 0:
-#         ev = removeEvent(x)
-#         r[i] = smcComputation(nfa, ev)
-#         e[i] = #TODO
-#         f[i] = (r,e)
-#         M[0][i] = 
-                            
-
-
-
-
 def min_aux_2(P, X, transitions, statesAlphabet):
     R = []
     if(len(X)<2):
@@ -758,3 +705,12 @@ def convertToDOTFile(file_name, file_xes):
         print("t "+log[case_index])    
         traces.add(trace)
     fSave.write("}")
+
+def automata_union(automata1, automata2):
+    return NFA.nfa_union(automata1, automata2)
+
+def automata_intersection(automata1, automata2):
+    return NFA.nfa_intersection(automata1, automata2)
+
+def automata_dfa_union(automata1, automata2):
+    return DFA.dfa_union(automata1, automata2)
