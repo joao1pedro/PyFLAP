@@ -1,14 +1,16 @@
-from pyexpat import ErrorString
-from PySimpleAutomata import NFA, DFA, automata_IO
-from pm4py.objects.log.importer.xes import importer as xes_importer
-
-from xml.dom import minidom
-
-
-#import re
-#import os
+import re
+import os
 import csv
 import xmltodict
+
+
+from PySimpleAutomata import NFA, DFA, automata_IO
+from pm4py.objects.log.importer.xes import importer as xes_importer
+from pm4py.objects.log.util import dataframe_utils
+from pm4py.objects.conversion.log import converter as log_converter
+from pm4py.objects.conversion.wf_net import converter as wf_net_converter
+from xml.dom import minidom
+from graphviz import Digraph
 
 
 def convertToJffFile(file_name, file_xes):
@@ -148,70 +150,96 @@ def jffToDFA(arquivo):
 
 def nfa_validate(nfa, arquivoTeste):
     errors = []
-    count_error = 0
-    count_hit = 0
-    count_file_line = 0
+    hit = []
+    results = []
     with open (arquivoTeste, 'r') as f:
         for elem in csv.reader(f, delimiter='\t'):
-            count_file_line +=1
             if str(NFA.nfa_word_acceptance(nfa, elem[0])) != elem[1]:
-                errors.append(elem)
-                count_error +=1
-                count_file_line +=1
-            count_hit +=1
-        if count_error >= 1:
-            return errors
-        else:
-            return count_hit
+                errors.append(elem[1])
+                results.append(elem[1])
+            hit.append(elem[1])
+            results.append(elem[1])
+        return results
 
 def dfa_validate(dfa, arquivoTeste):
     errors = []
-    count_error = 0
-    count_hit = 0
-    count_file_line = 0
+    hit = []
+    results = []
     with open (arquivoTeste, 'r') as f:
         for elem in csv.reader(f, delimiter='\t'):
-            count_file_line +=1
             if str(DFA.dfa_word_acceptance(dfa, elem[0])) != elem[1]:
-                errors.append(elem)
-                count_error +=1
-                count_file_line +=1
-            count_hit +=1
-        if count_error >= 1:
-            return errors
-        else:
-            return count_hit
+                errors.append(elem[1])
+                results.append(elem[1])
+            hit.append(elem[1])
+            results.append(elem[1])
+        return results
 
-def uncouple(param):
-    if type(param) == type(list()):
-        show_failed_tests(param)
-    else:
-        show_success(param)
+def save_dfa_to_graph(dfa: dict, name: str, path: str = './'):
+    dfa_to_graph(dfa).render(filename=name, directory=path)
 
 
-def show_success(count_hit):
-    string = (f'Successful test {count_hit} of {count_hit} passed')
-    print(string)
-    return string
+def dfa_to_graph(dfa: dict,formatfile='svg'):
+    """ Returns a Digraph of the input DFA using graphviz library.
 
-def show_failed_tests(array):
-    list_error = []
-    count = len(array)
-    if count >= 1:
-        print('Tests failed: ', count)
-        #list_error.append('Tests failed: ' + str(count))
-        for elem in array:
-            if elem[1] == 'True':
-                output = ('for input ' + elem[0]+ ' receive True but expected False')
-                print(output)
-                list_error.append(output) 
+    :param dict dfa: DFA to export;
+    """
+    g = Digraph(format=formatfile)
+    g.attr(rankdir='LR')
+    g.node('fake', style='invisible')
+    for state in dfa['states']:
+        if state == dfa['initial_state']:
+            if state in dfa['accepting_states']:
+                g.node(str(state), root='true',
+                       shape='doublecircle')
             else:
-                output = ('for input ' + elem[0]+ ' receive False but expected True')
-                print(output)
-                list_error.append(output) 
-        return list_error
-        
+                g.node(str(state), root='true')
+        elif state in dfa['accepting_states']:
+            g.node(str(state), shape='doublecircle')
+        else:
+            g.node(str(state))
 
+    g.edge('fake', str(dfa['initial_state']), style='bold')
+    for transition in dfa['transitions']:
+        g.edge(str(transition[0]),
+               str(dfa['transitions'][transition]),
+               label=transition[1])
+
+    return g
+
+def save_nfa_to_graph(nfa: dict, name: str, path: str = './'):
+    nfa_to_graph(nfa).render(filename=name, directory=path)
+
+def nfa_to_graph(nfa: dict,formatfile='svg'):
+    """ Returns a Digraph of the input NFA using graphviz library.
+
+    :param dict nfa: input NFA;
+    """
+    g = Digraph(format=formatfile)
+    g.attr(rankdir='LR')
+    fakes = []
+    for i in range(len(nfa['initial_states'])):
+        fakes.append('fake' + str(i))
+        g.node('fake' + str(i), style='invisible')
+
+    for state in nfa['states']:
+        if state in nfa['initial_states']:
+            if state in nfa['accepting_states']:
+                g.node(str(state), root='true',
+                       shape='doublecircle')
+            else:
+                g.node(str(state), root='true')
+        elif state in nfa['accepting_states']:
+            g.node(str(state), shape='doublecircle')
+        else:
+            g.node(str(state))
+
+    for initial_state in nfa['initial_states']:
+        g.edge(fakes.pop(), str(initial_state), style='bold')
+    for transition in nfa['transitions']:
+        for destination in nfa['transitions'][transition]:
+            g.edge(str(transition[0]), str(destination),
+                   label=transition[1])
+    return g
 
 
 # def smcComputation(nfa, event_log, event):
