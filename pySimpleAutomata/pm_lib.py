@@ -152,7 +152,7 @@ def nfa_validate(nfa, arquivoTeste):
     hit = []
     results = []
     with open(arquivoTeste, 'r') as f:
-        for elem in csv.reader(f, delimiter='\t'):
+        for elem in csv.reader(f, delimiter=','):
             if str(NFA.nfa_word_acceptance(nfa, elem[0])) != elem[1]:
                 errors.append(elem[1])
                 results.append(elem[1])
@@ -166,7 +166,7 @@ def dfa_validate(dfa, arquivoTeste):
     hit = []
     results = []
     with open(arquivoTeste, 'r') as f:
-        for elem in csv.reader(f, delimiter='\t'):
+        for elem in csv.reader(f, delimiter=','):
             if str(DFA.dfa_word_acceptance(dfa, elem[0])) != elem[1]:
                 errors.append(elem[1])
                 results.append(elem[1])
