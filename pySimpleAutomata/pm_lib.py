@@ -738,10 +738,10 @@ def automata_dfa_intersection(automata1: dict, automata2: dict) -> dict:
     return DFA.dfa_intersection(automata1, automata2)
 
 
-def nondet_check(automata_):
-    key = "initial_states"
+# def nondet_check(automata_):
+#     key = "initial_states"
 
-    if key in automata_:
-        return True
-    else:
-        return False
+#     if key in automata_:
+#         return True
+#     else:
+#         return False
