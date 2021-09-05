@@ -3,9 +3,13 @@
 *.dot
 *.jff
 *.csv
+*.db
+*.sql
 *myenv/
 .env
 .vscode/
+.ipynb_checkpoints/
+.mypy_cache/
 pm_lib_update.py
 test_dfa
 test_nfa
