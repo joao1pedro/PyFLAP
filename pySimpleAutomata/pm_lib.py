@@ -722,6 +722,365 @@ def convertToDOTFile(file_name, file_xes):
     fSave.write("}")
 
 
+def toNFA_History(lLog, history=-1):
+    """ Convert a list of traces (logs) as a NFA, regarding the history of events.
+
+    :param: List of Traces (e.g. [ ['a','b'], ['a','b','e'], ['a','e'] ]);
+    :return: *(dict)* representing a NFA.
+    """
+    states = set()
+    initial_states = set()
+    accepting_states = set()
+    alphabet = set()
+    transitions = {}  # key [state ∈ states, action ∈ alphabet]
+    #                   value [arriving state ∈ states]
+
+    states.add('[]')
+    initial_states.add('[]')
+    for j in range(len(lLog)):
+        inicio = 0
+        state_inicio = '[]'
+        for k in range(len(lLog[j])):
+            if(history > 0 and history <= k):
+                inicio = k + 1 - history
+            # state_prox = lLog[j][inicio:k+1]
+            # states.add(str(lLog[j][inicio:k+1]))
+            state_prox = '[' + ','.join(lLog[j][inicio:k + 1]) + ']'
+            states.add(state_prox)
+
+            if(k == len(lLog[j]) - 1):
+                # accepting_states.add(str())
+                accepting_states.add(state_prox)
+            alphabet.add(lLog[j][k])
+            transitions.setdefault(
+                (state_inicio, lLog[j][k]), set()).add(state_prox)
+            state_inicio = state_prox
+
+    nfa = {
+        'alphabet': alphabet,
+        'states': states,
+        'initial_states': initial_states,
+        'accepting_states': accepting_states,
+        'transitions': transitions
+    }
+
+    return nfa
+
+
+def epsilon_closure_set(nfa, set_state):
+    set_state_closure = set()
+    for current_state in set_state:
+        set_state_closure.update(epsilon_closure(nfa, current_state))
+    return set_state_closure
+
+
+def epsilon_closure(nfa, state):
+    queue = list()
+    queue.append(state)
+    set_state = set()
+    set_state.add(str(state))
+    while queue:
+        current_set = queue.pop(0)
+        if (str(current_set), "") in nfa['transitions']:
+            for next_state in nfa['transitions'][str(current_set), ""]:
+                if not (next_state in set_state):
+                    set_state.add(str(next_state))
+                    queue.append(next_state)
+    return set_state
+
+
+def nfa_empty_transitions_word_acceptance(nfa: dict, word: list) -> bool:
+    """ Checks if a given word is accepted by a NFA.
+
+    The word w is accepted by a NFA if exists at least an
+    accepting run on w.
+
+    :param dict nfa: input NFA;
+    :param list word: list of symbols ∈ nfa['alphabet'];
+    :return: *(bool)*, True if the word is accepted, False otherwise.
+    """
+    current_level = set()  # type: set[dict]
+    initial_states = epsilon_closure_set(nfa, nfa['initial_states'])
+    current_level = current_level.union(initial_states)
+    next_level = set()
+    for action in word:
+        for state in current_level:
+            if (state, action) in nfa['transitions']:
+                next_set = epsilon_closure_set(
+                    nfa, nfa['transitions'][state, action])
+                next_level.update(next_set)
+                # next_level.update(nfa['transitions'][state, action])
+        if len(next_level) < 1:
+            return False
+        current_level = next_level
+        next_level = set()
+
+    if current_level.intersection(nfa['accepting_states']):
+        return True
+    else:
+        return False
+
+
+def nfa_empty_transitions_determinization(nfa: dict) -> dict:
+    """ Returns a DFA that reads the same language of the input NFA.
+
+    Let A be an NFA, then there exists a DFA :math:`A_d` such
+    that :math:`L(A_d) = L(A)`. Intuitively, :math:`A_d`
+    collapses all possible runs of A on a given input word into
+    one run over a larger state set.
+    :math:`A_d` is defined as:
+
+    :math:`A_d = (Σ, 2^S , s_0 , ρ_d , F_d )`
+
+    where:
+
+    • :math:`2^S` , i.e., the state set of :math:`A_d` , consists
+        of all sets of states S in A;
+    • :math:`s_0 = S^0` , i.e., the single initial state of
+    :math:`A_d` is the set :math:`S_0` of initial states of A;
+    • :math:`F_d = \{Q | Q ∩ F ≠ ∅\}`, i.e., the collection of
+        sets of states that intersect F nontrivially;
+    • :math:`ρ_d(Q, a) = \{s' | (s,a, s' ) ∈ ρ\ for\ some\ s ∈ Q\}`.
+
+    :param dict nfa: input NFA.
+    :return: *(dict)* representing a DFA
+    """
+    dfa = {
+        'alphabet': nfa['alphabet'].copy(),
+        'initial_state': None,
+        'states': set(),
+        'accepting_states': set(),
+        'transitions': dict()
+    }
+
+    initial_states = epsilon_closure_set(nfa, nfa['initial_states'])
+    if len(initial_states) > 0:
+        dfa['initial_state'] = str(sorted(list(initial_states)))
+        dfa['states'].add(dfa['initial_state'])
+
+    sets_states = list()
+    sets_queue = list()
+    sets_queue.append(initial_states)
+    sets_states.append(initial_states)
+    if len(sets_states[0].intersection(nfa['accepting_states'])) > 0:
+        dfa['accepting_states'].add(str(sorted(list(sets_states[0]))))
+
+    while sets_queue:
+        current_set = sets_queue.pop(0)
+        for a in dfa['alphabet']:
+            next_set = set()
+            for state in current_set:
+                if (state, a) in nfa['transitions']:
+                    for next_state in nfa['transitions'][state, a]:
+                        next_set.add(next_state)
+            if len(next_set) == 0:
+                continue
+            next_set = epsilon_closure_set(nfa, next_set)
+            s_next_set = str(sorted(list(next_set)))
+            s_current_set = str(sorted(list(current_set)))
+            if next_set not in sets_states:
+                sets_states.append(next_set)
+                sets_queue.append(next_set)
+                s_next_set = str(sorted(list(next_set)))
+                dfa['states'].add(s_next_set)
+                if next_set.intersection(nfa['accepting_states']):
+                    dfa['accepting_states'].add(s_next_set)
+
+            dfa['transitions'][s_current_set, a] = s_next_set
+
+    return dfa
+
+
+def removeAllSequencesOfRepetitions(l):
+    indexes_repetitions = []
+    b = True
+    while b:
+        b = False
+        rep = 0
+        # print(l)
+        for i in range(len(l)):
+            rep = 0
+            nexts = []
+            for k in range(i + 1, len(l)):
+                if l[i] == l[k]:
+                    nexts.append(k)
+            # print("l[i] {} nexts {}".format(l[i], nexts))
+            for j in nexts:
+                size = j - i
+                while(l[i:j] == l[j + rep * size: j + rep * size + size]):
+                    rep += 1
+                if rep > 0:
+                    l = l[:j] + l[j + rep * size:]
+                    # Atualiza os indices
+                    # Cria os novos indices
+                    new_indexes_repetitions = []
+                    # Adiciona a repetição na nova sequência
+                    new_indexes_repetitions.append([i, j - 1])
+                    # print("[Begin,End]=[{},{}] :  {}".format(i,j-1,l[i:j]))
+                    for ir in indexes_repetitions:
+                        # print("IR [{},{}]".format(ir[0],ir[1]))
+                        ir0 = ir[0]
+                        ir1 = ir[1]
+                        size_deleted_sequence = rep * size
+
+                        if(ir0 > j - 1):
+                            if(ir0 > i + size_deleted_sequence):
+                                ir0 = ir0 - size_deleted_sequence
+                            else:
+                                ir0 = i + ((ir0 - i) % size)
+                        if(ir1 > j - 1):
+                            if(ir1 > i + size_deleted_sequence):
+                                ir1 = ir1 - size_deleted_sequence
+                            else:
+                                ir1 = i + ((ir1 - i) % size)
+                        # if(ir[0]>)
+                        new_indexes_repetitions.append([ir0, ir1])
+                    indexes_repetitions = new_indexes_repetitions
+                    break
+            if rep > 0:
+                b = True
+                break
+    return l, indexes_repetitions
+
+
+def remove_ocorrencias(dfa, lLog, size=0):
+    ocorrencias = get_ocorrencias(dfa, lLog)
+    new_transitions = dict()
+    for (s, a) in dfa['transitions']:
+        if ocorrencias[s, a] >= size:
+            new_transitions[s, a] = dfa['transitions'][s, a]
+    dfa['transitions'] = new_transitions
+
+
+def get_ocorrencias(dfa, lLog):
+    s = dfa['initial_state']
+    new_transitions = dict()
+    for (s, a) in dfa['transitions']:
+        new_transitions[s, a] = 0
+    for l in lLog:
+        s = dfa['initial_state']
+        for a in l:
+            if (s, a) in dfa['transitions']:
+                new_transitions[s, a] = new_transitions[s, a] + 1
+                s = dfa['transitions'][s, a]
+    return new_transitions
+
+
+def add_ocorrencias_to_label(dfa, lLog):
+    ocorrencias = get_ocorrencias(dfa, lLog)
+    new_transitions = dict()
+    for (s, a) in dfa['transitions']:
+        new_transitions[s,
+                        f'{a} ({ocorrencias[s,a]})'] = dfa['transitions'][s, a]
+    dfa['transitions'] = new_transitions
+
+
+def set_ocorrencias(dfa, lLog, size=0):
+    remove_ocorrencias(dfa, lLog, size)
+    DFA.dfa_reachable(dfa)
+    add_ocorrencias_to_label(dfa, lLog)
+
+# lista = ['P','P','A','D','A','D','C','D','D','C']
+# newList, index  = removeAllSequencesOfRepetitions(lista)
+# print(lista)
+# print(newList)
+# print(index)
+
+
+def toNFA_Minimum_Path(lLog, prefix_name="s"):
+    """ Convert a list of traces (logs) as a NFA.
+
+    :param: List of Traces (e.g. [ ['a','b'], ['a','b','e'], ['a','e'] ]);
+    :return: *(dict)* representing a NFA.
+    """
+    states = set()
+    initial_states = set()
+    accepting_states = set()
+    alphabet = set()
+    transitions = {}  # key [state ∈ states, action ∈ alphabet]
+    #                   value [arriving state ∈ states]
+
+    states.add(prefix_name + '0')
+    initial_states.add(prefix_name + '0')
+    i = 1  # state
+    for j in range(len(lLog)):
+        pos_i = i
+        trace, trace_new_transitions = removeAllSequencesOfRepetitions(lLog[j])
+        # print("trace {}, trace_new_transitions {}".format(trace, trace_new_transitions))
+        for k in range(len(trace)):
+            # for k in range(len(lLog[j])):
+            states.add(prefix_name + str(i))
+            if(k == len(trace) - 1):
+                accepting_states.add(prefix_name + str(i))
+            alphabet.add(trace[k])
+
+            if(k == 0):
+                transitions.setdefault(
+                    (prefix_name + '0', trace[k]), set()).add(prefix_name + str(i))
+            else:
+                transitions.setdefault(
+                    (prefix_name + str((i - 1)), trace[k]), set()).add(prefix_name + str(i))
+            i += 1
+        for t in trace_new_transitions:
+            pos_dest = pos_i + t[1]
+            if (t[0] == 0):
+                transitions.setdefault(
+                    (prefix_name + '{}'.format(pos_dest), ''), set()).add(prefix_name + '0')
+            else:
+                pos_ini = pos_i + t[0] - 1
+                transitions.setdefault(
+                    (prefix_name + '{}'.format(pos_dest), ''), set()).add(prefix_name + '{}'.format((pos_ini)))
+                # transitions.setdefault(('s{}'.format(pos_ini), set()), 'kk').add('s{}'.format(pos_dest))
+
+    nfa = {
+        'alphabet': alphabet,
+        'states': states,
+        'initial_states': initial_states,
+        'accepting_states': accepting_states,
+        'transitions': transitions
+    }
+
+    return nfa
+
+
+def renameStates(dfa, prefix_name="s"):
+    alphabet = dfa["alphabet"]
+    states = set()
+    initial_state = None
+    accepting_states = set()
+    transitions = {}
+    i = 1
+    tStates = {}
+    for s in dfa["states"]:
+        if(s == dfa["initial_state"]):
+            new_state = prefix_name + '0'
+            states.add(new_state)
+            tStates[s] = new_state
+            initial_state = new_state
+            if (s in dfa['accepting_states']):
+                accepting_states.add(new_state)
+        else:
+            new_state = prefix_name + str(i)
+            states.add(new_state)
+            tStates[s] = new_state
+            if (s in dfa['accepting_states']):
+                accepting_states.add(new_state)
+            i = i + 1
+    for t in dfa["transitions"]:
+        transitions[tStates[t[0]], t[1]
+                    ] = tStates[dfa["transitions"][t[0], t[1]]]
+
+    new_dfa = {
+        'alphabet': alphabet,
+        'states': states,
+        'initial_state': initial_state,
+        'accepting_states': accepting_states,
+        'transitions': transitions
+    }
+
+    return new_dfa
+
+
 def automata_nfa_union(automata1: dict, automata2: dict) -> dict:
     return NFA.nfa_union(automata1, automata2)
 
